@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>risk & haz' posts</title>
+    <style>
+        
+    </style>
+</head>
+<body>
+    <ul id="feed"></ul>
+
+    <script>
+        const RSS_URL = 'https://niklasjordan.leaflet.pub/rss'; // Replace with your RSS feed URL
+        const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+
+        fetch(CORS_PROXY + encodeURIComponent(RSS_URL))
+            .then(response => response.text())
+            .then(str => new DOMParser().parseFromString(str, 'text/xml'))
+            .then(data => {
+                const items = data.querySelectorAll('item');
+                const feedList = document.getElementById('feed');
+
+                Array.from(items).slice(0, 5).forEach(item => {
+                    const title = item.querySelector('title').textContent;
+                    const description = item.querySelector('description').textContent;
+                    const link = item.querySelector('link').textContent;
+
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <a href="${link}" target="_blank">${title}</a>
+                        <span>${description}</span>
+                    `;
+                    feedList.appendChild(li);
+                });
+            })
+            .catch(error => {
+                document.getElementById('feed').innerHTML = '<li>Error loading feed</li>';
+                console.error('Error:', error);
+            });
+    </script>
+</body>
+</html>
