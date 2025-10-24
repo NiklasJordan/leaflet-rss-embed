@@ -30,17 +30,17 @@ https://www.niklasjordan.com/leaflet-rss-embed/?rss=YOUR_RSS_FEED_URL
 
 **Display 10 items from your feed:**
 ```html
-<iframe src="https://www.niklasjordan.com/leaflet-rss-embed/?rss=https://yourname.leaflet.pub/rss&limit=10"></iframe>
+https://www.niklasjordan.com/leaflet-rss-embed/?rss=https://yourname.leaflet.pub/rss&limit=10
 ```
 
 **Custom link color (red):**
 ```html
-<iframe src="https://www.niklasjordan.com/leaflet-rss-embed/?rss=https://yourname.leaflet.pub/rss&color=%23FF0000"></iframe>
+https://www.niklasjordan.com/leaflet-rss-embed/?rss=https://yourname.leaflet.pub/rss&color=%23FF0000
 ```
 
 **All parameters combined:**
 ```html
-<iframe src="https://www.niklasjordan.com/leaflet-rss-embed/?rss=https://yourname.leaflet.pub/rss&color=%2300FF00&limit=3"></iframe>
+https://www.niklasjordan.com/leaflet-rss-embed/?rss=https://yourname.leaflet.pub/rss&color=%2300FF00&limit=3
 ```
 
 ## License
