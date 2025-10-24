@@ -5,7 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>risk & haz' posts</title>
     <style>
-        
+        @font-face {
+            font-family: 'iA Writer Quattro';
+            src: url('assets/iAWriterQuattroV.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        body {
+            font-family: 'iA Writer Quattro', monospace;
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        a {
+            color: #0047FF;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -28,9 +48,9 @@
                     const link = item.querySelector('link').textContent;
 
                     const li = document.createElement('li');
+                    const descriptionHTML = description.trim() ? ` &mdash; <span>${description}</span>` : '';
                     li.innerHTML = `
-                        <a href="${link}" target="_blank">${title}</a>
-                        <span>${description}</span>
+                        <a href="${link}" target="_blank">${title}</a>${descriptionHTML}
                     `;
                     feedList.appendChild(li);
                 });
