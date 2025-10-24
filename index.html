@@ -19,7 +19,7 @@
         }
 
         a {
-            color: #0047FF;
+            color: var(--link-color, #0047FF);
             text-decoration: none;
         }
 
@@ -36,17 +36,49 @@
     <ul id="feed"></ul>
 
     <script>
-        const RSS_URL = 'https://niklasjordan.leaflet.pub/rss'; // Replace with your RSS feed URL
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const RSS_URL = urlParams.get('rss');
+        const linkColor = urlParams.get('color') || '#0047FF';
+        const itemLimit = parseInt(urlParams.get('limit')) || 5;
         const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
-        fetch(CORS_PROXY + encodeURIComponent(RSS_URL))
+        // Apply link color dynamically
+        document.documentElement.style.setProperty('--link-color', linkColor);
+
+        // Check if RSS URL is provided
+        if (!RSS_URL) {
+            document.getElementById('feed').innerHTML = '<div style="padding: 0; list-style: none;">Please provide an RSS feed URL using the <em>?rss=YOUR_RSS_URL</em> parameter. Find more information on <a href="https://github.com/NiklasJordan/leaflet-rss-embed">GitHub</a>.</div>';
+        } else {
+            // Show animated loading message
+            const feedList = document.getElementById('feed');
+            feedList.innerHTML = '<li style="color: #999;" id="loading-message">Feed loading</li>';
+            
+            let dotCount = 0;
+            const loadingInterval = setInterval(() => {
+                dotCount = (dotCount % 4); // 0, 1, 2, 3 (3 is the pause)
+                const dots = '.'.repeat(dotCount);
+                const loadingMsg = document.getElementById('loading-message');
+                if (loadingMsg) {
+                    loadingMsg.textContent = `Feed loading${dots}`;
+                }
+                dotCount++;
+            }, 400);
+            
+            fetch(CORS_PROXY + encodeURIComponent(RSS_URL))
             .then(response => response.text())
             .then(str => new DOMParser().parseFromString(str, 'text/xml'))
             .then(data => {
+                // Stop loading animation
+                clearInterval(loadingInterval);
+                
                 const items = data.querySelectorAll('item');
                 const feedList = document.getElementById('feed');
+                
+                // Clear loading message
+                feedList.innerHTML = '';
 
-                Array.from(items).slice(0, 5).forEach(item => {
+                Array.from(items).slice(0, itemLimit).forEach(item => {
                     const title = item.querySelector('title').textContent;
                     const description = item.querySelector('description').textContent;
                     const link = item.querySelector('link').textContent;
@@ -60,9 +92,15 @@
                 });
             })
             .catch(error => {
+                // Stop loading animation
+                clearInterval(loadingInterval);
+                
                 document.getElementById('feed').innerHTML = '<li>Error loading feed</li>';
                 console.error('Error:', error);
             });
+        }
     </script>
+
+    <script async src="https://scripts.withcabin.com/hello.js"></script>
 </body>
 </html>
