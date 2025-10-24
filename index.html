@@ -41,6 +41,7 @@
         const RSS_URL = urlParams.get('rss');
         const linkColor = urlParams.get('color') || '#0047FF';
         const itemLimit = parseInt(urlParams.get('limit')) || 5;
+        const maxRetries = parseInt(urlParams.get('retries')) || 3;
         const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
         // Apply link color dynamically
@@ -50,54 +51,78 @@
         if (!RSS_URL) {
             document.getElementById('feed').innerHTML = '<div style="padding: 0; list-style: none;">Please provide an RSS feed URL using the <em>?rss=YOUR_RSS_URL</em> parameter. Find more information on <a href="https://github.com/NiklasJordan/leaflet-rss-embed">GitHub</a>.</div>';
         } else {
-            // Show animated loading message
-            const feedList = document.getElementById('feed');
-            feedList.innerHTML = '<li style="color: #999;" id="loading-message">Feed loading</li>';
+            let loadingInterval;
             
-            let dotCount = 0;
-            const loadingInterval = setInterval(() => {
-                dotCount = (dotCount % 4); // 0, 1, 2, 3 (3 is the pause)
-                const dots = '.'.repeat(dotCount);
-                const loadingMsg = document.getElementById('loading-message');
-                if (loadingMsg) {
-                    loadingMsg.textContent = `Feed loading${dots}`;
-                }
-                dotCount++;
-            }, 400);
-            
-            fetch(CORS_PROXY + encodeURIComponent(RSS_URL))
-            .then(response => response.text())
-            .then(str => new DOMParser().parseFromString(str, 'text/xml'))
-            .then(data => {
-                // Stop loading animation
-                clearInterval(loadingInterval);
-                
-                const items = data.querySelectorAll('item');
+            // Function to fetch RSS feed with retry logic
+            async function fetchFeedWithRetry(attempt = 1) {
                 const feedList = document.getElementById('feed');
                 
-                // Clear loading message
-                feedList.innerHTML = '';
-
-                Array.from(items).slice(0, itemLimit).forEach(item => {
-                    const title = item.querySelector('title').textContent;
-                    const description = item.querySelector('description').textContent;
-                    const link = item.querySelector('link').textContent;
-
-                    const li = document.createElement('li');
-                    const descriptionHTML = description.trim() ? ` &mdash; <span>${description}</span>` : '';
-                    li.innerHTML = `
-                        <a href="${link}" target="_blank">${title}</a>${descriptionHTML}
-                    `;
-                    feedList.appendChild(li);
-                });
-            })
-            .catch(error => {
-                // Stop loading animation
-                clearInterval(loadingInterval);
+                // Show animated loading message
+                feedList.innerHTML = `<li style="color: #999;" id="loading-message">Feed loading${attempt > 1 ? ` (attempt ${attempt}/${maxRetries})` : ''}</li>`;
                 
-                document.getElementById('feed').innerHTML = '<li>Error loading feed</li>';
-                console.error('Error:', error);
-            });
+                let dotCount = 0;
+                loadingInterval = setInterval(() => {
+                    dotCount = (dotCount % 4); // 0, 1, 2, 3 (3 is the pause)
+                    const dots = '.'.repeat(dotCount);
+                    const loadingMsg = document.getElementById('loading-message');
+                    if (loadingMsg) {
+                        loadingMsg.textContent = `Feed loading${attempt > 1 ? ` (attempt ${attempt}/${maxRetries})` : ''}${dots}`;
+                    }
+                    dotCount++;
+                }, 400);
+                
+                try {
+                    const response = await fetch(CORS_PROXY + encodeURIComponent(RSS_URL));
+                    const text = await response.text();
+                    const data = new DOMParser().parseFromString(text, 'text/xml');
+                    
+                    // Stop loading animation
+                    clearInterval(loadingInterval);
+                    
+                    const items = data.querySelectorAll('item');
+                    
+                    // Check if we got valid items
+                    if (items.length === 0) {
+                        throw new Error('No feed items found');
+                    }
+                    
+                    // Clear loading message
+                    feedList.innerHTML = '';
+
+                    Array.from(items).slice(0, itemLimit).forEach(item => {
+                        const title = item.querySelector('title').textContent;
+                        const description = item.querySelector('description').textContent;
+                        const link = item.querySelector('link').textContent;
+
+                        const li = document.createElement('li');
+                        const descriptionHTML = description.trim() ? ` &mdash; <span>${description}</span>` : '';
+                        li.innerHTML = `
+                            <a href="${link}" target="_blank">${title}</a>${descriptionHTML}
+                        `;
+                        feedList.appendChild(li);
+                    });
+                } catch (error) {
+                    // Stop loading animation
+                    clearInterval(loadingInterval);
+                    
+                    console.error(`Attempt ${attempt} failed:`, error);
+                    
+                    // Retry if we haven't reached max retries
+                    if (attempt < maxRetries) {
+                        const delay = Math.pow(2, attempt - 1) * 1000; // Exponential backoff: 1s, 2s, 4s
+                        console.log(`Retrying in ${delay}ms...`);
+                        
+                        feedList.innerHTML = `<li style="color: #999;">Retrying in ${delay / 1000}s...</li>`;
+                        setTimeout(() => fetchFeedWithRetry(attempt + 1), delay);
+                    } else {
+                        feedList.innerHTML = '<li>Error loading feed after multiple attempts</li>';
+                        console.error('All retry attempts failed');
+                    }
+                }
+            }
+            
+            // Start fetching the feed
+            fetchFeedWithRetry();
         }
     </script>
 
